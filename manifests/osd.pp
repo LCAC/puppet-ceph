@@ -35,6 +35,12 @@
 #   Optional. Defaults to co-locating the journal with the data
 #   defined by *title*.
 #
+# [*block_db*] The OSD DB device path.
+#   Optional. Defaults not to use DB device.
+#
+# [*block_wal*] The OSD WAL device path.
+#   Optional. Defaults not to use WAL device.
+#
 # [*cluster*] The ceph cluster
 #   Optional. Same default as ceph.
 #
@@ -51,6 +57,8 @@
 define ceph::osd (
   $ensure = present,
   $journal = "''",
+  $block_db = undef,
+  $block_wal = undef,
   $cluster = undef,
   $exec_timeout = $::ceph::params::exec_timeout,
   $selinux_file_context = 'ceph_var_lib_t',
@@ -130,7 +138,31 @@ if ! test -b \$disk ; then
         chown -h ceph:ceph \$disk
     fi
 fi
-ceph-disk prepare ${cluster_option} ${fsid_option} $(readlink -f ${data}) $(readlink -f ${journal})
+block_db_option=''
+if ! test -z ${block_db} ; then
+    db=$(readlink -f ${block_db})
+    block_db_option=\"--block.db \$db\"
+    if ! test -b \$db ; then
+        echo \$db | egrep -e '^/dev' -q -v
+        mkdir -p \$db
+        if getent passwd ceph >/dev/null 2>&1; then
+            chown -h ceph:ceph \$db
+        fi
+    fi
+fi
+block_wal_option=''
+if ! test -z ${block_wal} ; then
+    wal=$(readlink -f ${block_wal})
+    block_wal_option=\"--block.wal \$wal\"
+    if ! test -b \$wal ; then
+        echo \$wal | egrep -e '^/dev' -q -v
+        mkdir -p \$wal
+        if getent passwd ceph >/dev/null 2>&1; then
+            chown -h ceph:ceph \$wal
+        fi
+    fi
+fi
+ceph-disk prepare ${cluster_option} ${fsid_option} \$block_db_option \$block_wal_option $(readlink -f ${data}) $(readlink -f ${journal})
 udevadm settle
 ",
         unless    => "/bin/true # comment to satisfy puppet syntax requirements

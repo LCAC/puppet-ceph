@@ -140,8 +140,8 @@ if ! test -b \$disk ; then
 fi
 block_db_option=''
 if ! test -z ${block_db} ; then
+    block_db_option=\"--block.db ${block_db}\"
     db=$(readlink -f ${block_db})
-    block_db_option=\"--block.db \$db\"
     if ! test -b \$db ; then
         echo \$db | egrep -e '^/dev' -q -v
         mkdir -p \$db
@@ -152,8 +152,8 @@ if ! test -z ${block_db} ; then
 fi
 block_wal_option=''
 if ! test -z ${block_wal} ; then
+    block_wal_option=\"--block.wal ${block_wal}\"
     wal=$(readlink -f ${block_wal})
-    block_wal_option=\"--block.wal \$wal\"
     if ! test -b \$wal ; then
         echo \$wal | egrep -e '^/dev' -q -v
         mkdir -p \$wal

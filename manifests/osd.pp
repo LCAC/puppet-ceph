@@ -35,11 +35,11 @@
 #   Optional. Defaults to co-locating the journal with the data
 #   defined by *title*.
 #
-# [*bluestore_wal*] The OSD bluestore WAL path.
+# [*block_wal*] The OSD bluestore WAL path.
 #   Optional. Defaults to co-locating the WAL with the data
 #   defined by *title*.
 #
-# [*bluestore_db*] The OSD bluestore WAL path.
+# [*block_db*] The OSD bluestore WAL path.
 #   Optional. Defaults to co-locating the DB with the data
 #   defined by *title*.
 #
@@ -70,8 +70,8 @@ define ceph::osd (
   $ensure = present,
   $journal = undef,
   $cluster = undef,
-  $bluestore_wal = undef,
-  $bluestore_db = undef,
+  $block_wal = undef,
+  $block_db = undef,
   $store_type = undef,
   $exec_timeout = $ceph::params::exec_timeout,
   $selinux_file_context = 'ceph_var_lib_t',
@@ -97,12 +97,12 @@ define ceph::osd (
       $osd_type = ''
     }
 
-    if ($bluestore_wal) or ($bluestore_db) {
-      if $bluestore_wal {
-        $wal_opts = "--block.wal ${bluestore_wal}"
+    if ($block_wal) or ($block_db) {
+      if $block_wal {
+        $wal_opts = "--block.wal ${block_wal}"
       }
-      if $bluestore_db {
-        $block_opts = "--block.db ${bluestore_db}"
+      if $block_db {
+        $block_opts = "--block.db ${block_db}"
       }
       $journal_opts = "${wal_opts} ${block_opts}"
 

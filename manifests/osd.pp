@@ -178,10 +178,16 @@ if ! test -b \$disk ; then
 fi
 ceph-volume lvm prepare ${osd_type} ${cluster_option}${dmcrypt_options} ${fsid_option} --data ${data} ${journal_opts}
 ",
-        unless    => "/bin/true # comment to satisfy puppet syntax requirements
-set -ex
-ceph-volume lvm list ${data}
+        unless    => [
+          "/bin/true # comment to satisfy puppet syntax requirements
+           set -ex
+           ceph-volume lvm list ${data}
+ ",
+          "/bin/true # comment to satisfy puppet syntax requirements
+           set -ex
+           fdisk -l ${data} | grep -q 'Ceph OSD'
 ",
+        ],
         logoutput => true,
         timeout   => $exec_timeout,
         tag       => 'prepare',
@@ -214,15 +220,28 @@ if ! test -b \$disk ; then
     # Since nautilus, only block devices or lvm logical volumes can be used for OSDs
     exit 1
 fi
-id=$(ceph-volume lvm list ${data} | grep 'osd id'|awk -F 'osd id' '{print \$2}'|tr -d ' ')
-fsid=$(ceph-volume lvm list ${data} | grep 'osd fsid'|awk -F 'osd fsid' '{print \$2}'|tr -d ' ')
-ceph-volume lvm activate \$id \$fsid
+if [ $(fdisk -l ${data} | grep 'Ceph OSD' | wc -l) -eq 1 ];then
+  osd_id=$(grep -A 15 /dev/$(readlink ${data} | awk -F/ '{ print \$3 }')1 /etc/ceph/osd/* | grep 'whoami' | awk -F': ' '{print \$2}')
+  systemctl start ceph-osd@\${osd_id}
+else
+  id=$(ceph-volume lvm list ${data} | grep 'osd id'|awk -F 'osd id' '{print \$2}'|tr -d ' ')
+  fsid=$(ceph-volume lvm list ${data} | grep 'osd fsid'|awk -F 'osd fsid' '{print \$2}'|tr -d ' ')
+  ceph-volume lvm activate \$id \$fsid
+fi
 ",
-        unless    => "/bin/true # comment to satisfy puppet syntax requirements
-set -ex
-id=$(ceph-volume lvm list ${data} | grep 'osd id'|awk -F 'osd id' '{print \$2}'|tr -d ' ')
-ps -fCceph-osd|grep \"\\--id \$id \"
+
+        unless    => [
+          "/bin/true # comment to satisfy puppet syntax requirements
+           set -ex
+           id=$(ceph-volume lvm list ${data} | grep 'osd id'|awk -F 'osd id' '{print \$2}'|tr -d ' ')
+           ps -fCceph-osd|grep \"\\--id \$id \"
 ",
+          "/bin/true # comment to satisfy puppet syntax requirements
+           set -ex
+           osd_id=$(grep -A 15 /dev/$(readlink ${data} | awk -F/ '{ print \$3 }')1 /etc/ceph/osd/* | grep 'whoami'| awk -'F: ' '{ print \$2}')
+           ps -fCceph-osd|grep \"\\--id \$osd_id \"
+ ",
+        ],
         logoutput => true,
         tag       => 'activate',
       }

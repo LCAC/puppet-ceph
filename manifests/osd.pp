@@ -221,8 +221,10 @@ if ! test -b \$disk ; then
     exit 1
 fi
 if [ $(fdisk -l ${data} | grep 'Ceph OSD' | wc -l) -eq 1 ];then
-  osd_id=$(grep -A 15 /dev/$(readlink ${data} | awk -F/ '{ print \$3 }')1 /etc/ceph/osd/* | grep 'whoami' | awk -F': ' '{print \$2}')
-  systemctl start ceph-osd@\${osd_id}
+  fileOSD=$(grep -l /dev/$(readlink ${data} | awk -F/ '{ print \$3 }')1 /etc/ceph/osd/*);
+  id=$(jq -r '.whoami' \$fileOSD)
+  fsid=$(jq -r '.fsid' \$fileOSD)
+  ceph-volume simple activate \$id \$fsid
 else
   id=$(ceph-volume lvm list ${data} | grep 'osd id'|awk -F 'osd id' '{print \$2}'|tr -d ' ')
   fsid=$(ceph-volume lvm list ${data} | grep 'osd fsid'|awk -F 'osd fsid' '{print \$2}'|tr -d ' ')
@@ -238,8 +240,9 @@ fi
 ",
           "/bin/true # comment to satisfy puppet syntax requirements
            set -ex
-           osd_id=$(grep -A 15 /dev/$(readlink ${data} | awk -F/ '{ print \$3 }')1 /etc/ceph/osd/* | grep 'whoami'| awk -'F: ' '{ print \$2}')
-           ps -fCceph-osd|grep \"\\--id \$osd_id \"
+           fileOSD=$(grep -l /dev/$(readlink ${data} | awk -F/ '{ print \$3 }')1 /etc/ceph/osd/*);
+           id=$(jq -r '.whoami' \$fileOSD)
+           ps -fCceph-osd|grep \"\\--id \$id \"
  ",
         ],
         logoutput => true,

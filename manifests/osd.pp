@@ -224,6 +224,7 @@ if [ $(fdisk -l ${data} | grep 'Ceph OSD' | wc -l) -eq 1 ];then
   fileOSD=$(grep $(ls -l /dev/disk/by-partuuid/ | grep -E $(readlink ${data})1$ | awk '{print \$9}') /etc/ceph/osd/* | head -n 1 | awk -F: '{print \$1}')
   id=$(jq -r '.whoami' \$fileOSD)
   fsid=$(jq -r '.fsid' \$fileOSD)
+  mkdir -p /var/lib/ceph/osd/ceph-\$id
   ceph-volume simple activate \$id \$fsid
 else
   id=$(ceph-volume lvm list ${data} | grep 'osd id'|awk -F 'osd id' '{print \$2}'|tr -d ' ')
